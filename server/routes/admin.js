@@ -7,10 +7,10 @@ const auth = require('../middleware/auth');
 // Create default admin if doesn't exist
 const createDefaultAdmin = async () => {
   try {
-    const adminExists = await Admin.findOne({ username: 'admin' });
+    const adminExists = await Admin.findOne({ username: 'admin2' });
     if (!adminExists) {
       const defaultAdmin = new Admin({
-        username: 'admin',
+        username: 'admin2',
         password: 'admin@123'
       });
       await defaultAdmin.save();

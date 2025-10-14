@@ -65,7 +65,11 @@ const ResultSchema = new mongoose.Schema({
   ipAddress: {
     type: String,
     default: ''
-  }
+  },
+  screenEvents: [{
+    event: String,
+    timestamp: String
+  }]
 });
 
 module.exports = mongoose.model('Result', ResultSchema);

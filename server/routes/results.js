@@ -1,10 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const Result = require('../models/Result');
-const Quiz = require('../models/Quiz');
 const auth = require('../middleware/auth');
 
-// POST /api/results - Submit quiz result
 router.post('/', async (req, res) => {
   try {
     const { 
@@ -15,7 +13,8 @@ router.post('/', async (req, res) => {
       score, 
       totalQuestions, 
       answers, 
-      timeSpent 
+      timeSpent,
+      screenEvents // Accept screenEvents array
     } = req.body;
 
     // Validate required fields
@@ -36,7 +35,9 @@ router.post('/', async (req, res) => {
       percentage,
       answers,
       timeSpent: timeSpent || 0,
-      ipAddress: req.ip || req.connection.remoteAddress
+      ipAddress: req.ip || req.connection.remoteAddress,
+      screenEvents: screenEvents || [], // Store or default empty
+
     });
 
     await result.save();
@@ -67,6 +68,7 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
+
 // GET /api/results/quiz/:quizId - Get results for specific quiz (Admin only)
 router.get('/quiz/:quizId', auth, async (req, res) => {
   try {
@@ -82,7 +84,7 @@ router.get('/quiz/:quizId', auth, async (req, res) => {
 router.get('/stats/:quizId', auth, async (req, res) => {
   try {
     const results = await Result.find({ quizId: req.params.quizId });
-    
+
     if (results.length === 0) {
       return res.json({
         totalAttempts: 0,

@@ -37,7 +37,6 @@ const Results = () => {
     .filter(result => selectedQuiz === '' || result.quizId === selectedQuiz)
     .sort((a, b) => {
       let aValue, bValue;
-      
       switch (sortBy) {
         case 'completedAt':
           aValue = new Date(a.completedAt);
@@ -58,7 +57,6 @@ const Results = () => {
         default:
           return 0;
       }
-
       if (sortOrder === 'asc') {
         return aValue > bValue ? 1 : -1;
       } else {
@@ -72,7 +70,7 @@ const Results = () => {
   })))];
 
   const calculateStats = () => {
-    const filteredResults = selectedQuiz 
+    const filteredResults = selectedQuiz
       ? results.filter(result => result.quizId === selectedQuiz)
       : results;
 
@@ -157,7 +155,7 @@ const Results = () => {
               ))}
             </select>
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Sort by
@@ -173,7 +171,7 @@ const Results = () => {
               <option value="userName">User Name</option>
             </select>
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Order
@@ -195,7 +193,7 @@ const Results = () => {
         <div className="px-6 py-4 border-b border-gray-200">
           <h3 className="text-lg font-medium">Results ({filteredAndSortedResults.length})</h3>
         </div>
-        
+
         {filteredAndSortedResults.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-600">No results found</p>
@@ -227,45 +225,59 @@ const Results = () => {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredAndSortedResults.map((result) => (
-                  <tr key={result._id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">
-                          {result.userName}
-                        </div>
-                        {result.userEmail && (
-                          <div className="text-sm text-gray-500">
-                            {result.userEmail}
+                  <React.Fragment key={result._id}>
+                    <tr className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {result.userName}
                           </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{result.quizTitle}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
+                          {result.userEmail && (
+                            <div className="text-sm text-gray-500">
+                              {result.userEmail}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {result.quizTitle}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {result.score} / {result.totalQuestions}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        result.percentage >= 80
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${result.percentage >= 80
                           ? 'bg-green-100 text-green-800'
                           : result.percentage >= 60
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {result.percentage}%
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {result.timeSpent ? `${Math.floor(result.timeSpent / 60)}:${(result.timeSpent % 60).toString().padStart(2, '0')}` : 'N/A'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {new Date(result.completedAt).toLocaleString()}
-                    </td>
-                  </tr>
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-red-100 text-red-800'
+                          }`}>
+                          {result.percentage}%
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {result.timeSpent ? `${Math.floor(result.timeSpent / 60)}:${(result.timeSpent % 60).toString().padStart(2, '0')}` : 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {new Date(result.completedAt).toLocaleString()}
+                      </td>
+                    </tr>
+                    {result.screenEvents && result.screenEvents.length > 0 && (
+                      <tr className="bg-yellow-50">
+                        <td colSpan="6" className="px-6 py-4 text-sm text-gray-700">
+                          <strong>Tab/Screen Events:</strong>
+                          <ul className="list-disc list-inside mt-2 max-h-40 overflow-auto">
+                            {result.screenEvents.map((ev, idx) => (
+                              <li key={`${ev.timestamp}-${idx}`}>
+                                {ev.event} — {new Date(ev.timestamp).toLocaleString()}
+                              </li>
+                            ))}
+
+                          </ul>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>
