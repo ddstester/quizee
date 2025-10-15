@@ -3,6 +3,12 @@ const router = express.Router();
 const Admin = require('../models/Admin');
 const jwt = require('jsonwebtoken');
 const auth = require('../middleware/auth');
+const Question = require('../models/Question');
+const Quiz = require('../models/Quiz');
+const { route } = require('./quizzes');
+const {
+  GoogleGenerativeAI
+} = require("@google/generative-ai");
 
 // Create default admin if doesn't exist
 const createDefaultAdmin = async () => {
@@ -107,4 +113,70 @@ router.get('/dashboard', auth, async (req, res) => {
   }
 });
 
+router.post('/prompt', auth, async (req, res) => {
+  try {
+    const { prompt, quizid } = req.body;
+    const promp = `Take this TASK=${prompt} in json formate.
+    Output format should be a JSON array of objects.e.g=
+         {"questionText": "[Question on given task]",
+          "options": ["option1","option2","option3","option4"],
+          "correctAnswer": [no. of the correct option in integer]}`;
+    const genAI = new GoogleGenerativeAI("AIzaSyA9B_nP12dTgb4END_SYzEhdIGD2fmCuEs");
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    try {
+      const result = await model.generateContent(promp);
+      const responseText = result.response.text();
+      console.log(responseText);
+      const modified = responseText.replace(/`/g, "");
+      const modified2 = modified.replace("json", "");
+      let questions = JSON.parse(modified2);
+      res.status(200).json(questions);
+      //save the quiz to database 
+      const quizId = quizid;
+      for (let i = 0; i < questions.length; i++) {
+        try {
+          let obj = questions[i]
+          const questionText = obj.questionText, options = obj.options, correctAnswer = obj.correctAnswer;
+          // console.log(obj.questionText)
+
+          // Validate input
+          if (!quizId || !questionText || !options || correctAnswer === undefined) {
+            return res.status(400).json({ error: 'All fields are required' });
+          }
+
+          if (options.length !== 4) {
+            return res.status(400).json({ error: 'Exactly 4 options are required' });
+          }
+
+          if (correctAnswer < 0 || correctAnswer > 3) {
+            return res.status(400).json({ error: 'Correct answer must be between 0-3' });
+          }
+
+          // Check if quiz exists
+          const quiz = await Quiz.findById(quizId);
+          if (!quiz) {
+            return res.status(404).json({ error: 'Quiz not found' });
+          }
+
+          const question = new Question({
+            quizId,
+            questionText,
+            options,
+            correctAnswer
+          });
+
+          await question.save();
+          // res.status(201).json(question);
+        } catch (error) {
+          console.log(error)
+          res.status(500).json({ error: 'Failed to create question' });
+        }
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  } catch (error) {
+    console.log(error);
+  };
+})
 module.exports = router;

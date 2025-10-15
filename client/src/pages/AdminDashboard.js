@@ -18,13 +18,69 @@ const AdminDashboard = () => {
   const [showQuizForm, setShowQuizForm] = useState(false);
   const [showQuestionForm, setShowQuestionForm] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+
 
   const [quizForm, setQuizForm] = useState({
     title: '',
     description: '',
     category: ''
   });
+  // 💡 NEW STATE for the AI Question Generator form
+  const [aiForm, setAiForm] = useState({
+    quizid: '',
+    prompt: ''
+  });
+  const handleGenerateQuestions = async () => {
+    const { quizid, prompt } = aiForm;
 
+    if (!quizid || !prompt) {
+      alert("Please enter both a Quiz ID and a Prompt.");
+      return;
+    }
+
+    try {
+      const payload = { quizid, prompt };
+      //Disable the button when the API call starts
+      setIsGenerating(true);
+
+      console.log("Sending payload to AI generation API:", payload);
+      const response = await adminAPI.aigeneration(payload);
+
+      console.log('AI Questions API Success:', response);
+      alert('Questions generated and added successfully!');
+
+      // Clear the form and possibly switch to the questions tab
+      setAiForm({ quizid: '', prompt: '' });
+      setActiveTab('questions');
+
+      // If the generated questions should appear immediately, you may need 
+      // to call fetchQuestions(quizid) here, provided the current quiz is selected.
+      if (selectedQuiz?._id === quizid) {
+        fetchQuestions(quizid);
+      } else {
+        // Optionally, select the quiz if it's not the current one
+        const quiz = quizzes.find(q => q._id === quizid);
+        if (quiz) {
+          setSelectedQuiz(quiz);
+          fetchQuestions(quizid);
+        }
+      }
+
+    } catch (error) {
+      console.error('Error generating AI questions:', error);
+      alert('Failed to generate questions. Check the Quiz ID and API status.');
+    } finally {
+      // Re-enable the button once the process is complete.
+      setIsGenerating(false);
+    }
+  };
+
+  // 💡 NEW FUNCTION to handle form cancellation (clears the form)
+  const handleAIGenerateCancel = () => {
+    setAiForm({ quizid: '', prompt: '' });
+    console.log("AI Generate form cleared.");
+  };
   useEffect(() => {
     if (!admin) {
       navigate('/admin/login');
@@ -149,7 +205,9 @@ const AdminDashboard = () => {
             { id: 'overview', label: 'Overview' },
             { id: 'quizzes', label: 'Manage Quizzes' },
             { id: 'questions', label: 'Manage Questions' },
+            { id: 'QuestionGenerate', label: "AI Questions" },
             { id: 'results', label: 'Results' }
+
           ].map(tab => (
             <button
               key={tab.id}
@@ -161,8 +219,8 @@ const AdminDashboard = () => {
                 }
               }}
               className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === tab.id
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
             >
               {tab.label}
@@ -282,6 +340,7 @@ const AdminDashboard = () => {
                     <div className="flex items-center space-x-4 text-sm text-gray-500">
                       <span>Category: {quiz.category}</span>
                       <span>Created: {new Date(quiz.createdAt).toLocaleDateString()}</span>
+                      <span>Quizid: {quiz._id}</span>
                       <span className={`px-2 py-1 rounded-full text-xs ${quiz.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                         }`}>
                         {quiz.isActive ? 'Active' : 'Inactive'}
@@ -398,8 +457,8 @@ const AdminDashboard = () => {
                           <div
                             key={optionIndex}
                             className={`p-2 rounded text-sm ${optionIndex === question.correctAnswer
-                                ? 'bg-green-100 text-green-800 font-medium'
-                                : 'bg-gray-50'
+                              ? 'bg-green-100 text-green-800 font-medium'
+                              : 'bg-gray-50'
                               }`}
                           >
                             {String.fromCharCode(65 + optionIndex)}. {option}
@@ -415,6 +474,46 @@ const AdminDashboard = () => {
           )}
         </div>
       )}
+
+      {activeTab === 'QuestionGenerate' && (<div class="p-6 max-w-sm mx-auto bg-white rounded-xl shadow-lg space-y-4">
+        <h2 class="text-xl font-semibold text-gray-900">Generate Questions</h2>
+        <div class="space-y-3">
+          <input
+            type="text"
+            id="ai-quizid" // Changed ID for clarity
+            placeholder="Enter quiz id"
+            value={aiForm.quizid} // 💡 BIND TO STATE
+            onChange={(e) => setAiForm({ ...aiForm, quizid: e.target.value })} // 💡 REACT HANDLER
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <input
+            type="text"
+            id="ai-prompt" // Changed ID for clarity
+            placeholder="Enter prompt (e.g., '5 multiple choice questions on React Hooks')"
+            value={aiForm.prompt} // 💡 BIND TO STATE
+            onChange={(e) => setAiForm({ ...aiForm, prompt: e.target.value })} // 💡 REACT HANDLER
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div class="flex justify-end space-x-3">
+          <button onClick={handleAIGenerateCancel}
+            disabled={isGenerating}
+            class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition duration-150 ease-in-out">
+            Cancel
+          </button>
+          <button onClick={handleGenerateQuestions}
+            className={`px-4 py-2 text-sm font-medium text-white rounded-md transition duration-150 ease-in-out ${isGenerating
+                ? 'bg-blue-400 cursor-not-allowed' // Lighter color and different cursor when disabled
+                : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+              }`}>
+            {/* 💡 Conditional text based on state */}
+            {isGenerating ? 'Generating...' : 'Generate'}
+          </button>
+        </div>
+      </div>)}
+
+
     </div>
   );
 };

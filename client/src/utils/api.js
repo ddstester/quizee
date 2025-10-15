@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
 
 // Set base URL
 axios.defaults.baseURL = API_BASE_URL;
@@ -97,6 +97,10 @@ export const adminAPI = {
   // Get dashboard data
   getDashboard: async () => {
     const response = await axios.get('/admin/dashboard');
+    return response.data;
+  },
+  aigeneration: async (prompt) => {
+    const response = await axios.post('/admin/prompt',prompt);
     return response.data;
   }
 };
