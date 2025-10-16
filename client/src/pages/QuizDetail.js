@@ -6,6 +6,12 @@ import LoadingSpinner from '../components/LoadingSpinner';
 
 import { quizAPI, resultAPI } from '../utils/api';
 
+// --- NEW UTILITY FUNCTION ---
+const isMobileDevice = () => {
+  return /Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+};
+// -----------------------------
+
 const QuizDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -31,10 +37,17 @@ const QuizDetail = () => {
   const [screenSharingActive, setScreenSharingActive] = useState(false);
   const [screenSharingError, setScreenSharingError] = useState('');
   const [screenStream, setScreenStream] = useState(null);
+  
+  // --- NEW STATE ---
+  const [isMobile, setIsMobile] = useState(false);
+  // -----------------
 
   const screenEventsRef = useRef([]);
 
   useEffect(() => {
+    // --- NEW INITIALIZATION LOGIC ---
+    setIsMobile(isMobileDevice());
+    // --------------------------------
     fetchQuizData();
   }, [id]);
 
@@ -60,7 +73,7 @@ const QuizDetail = () => {
     const elem = document.documentElement;
     if (elem.requestFullscreen) elem.requestFullscreen();
     else if (elem.mozRequestFullScreen) elem.mozRequestFullScreen();
-    else if (elem.webkitRequestFullscreen) elem.webkitRequestFullscreen();
+    else if (elem.webkitRequestFullscreen) elem.requestFullscreen();
     else if (elem.msRequestFullscreen) elem.msRequestFullscreen();
   };
 
@@ -69,6 +82,18 @@ const QuizDetail = () => {
       alert('Please enter your name to start the quiz.');
       return;
     }
+    
+    // --- MODIFIED LOGIC FOR MOBILE CHECK ---
+    if (isMobile) {
+      // Allow quiz to start without screen sharing on mobile
+      setScreenSharingActive(false); // Explicitly false, no sharing required
+      setShowUserForm(false);
+      setStartTime(Date.now());
+      screenEventsRef.current = [];
+      return;
+    }
+    // ---------------------------------------
+
     try {
       const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
       setScreenStream(stream);
@@ -84,6 +109,7 @@ const QuizDetail = () => {
   };
 
   useEffect(() => {
+    // Only apply proctoring events if screen sharing is active (i.e., on desktop)
     if (!screenSharingActive) return;
 
     function recordEvent(type) {
@@ -183,8 +209,10 @@ const QuizDetail = () => {
       
       setShowResults(true);
 
-      // Stop screen sharing and exit fullscreen
-      stopScreenSharing();
+      // Stop screen sharing and exit fullscreen, only if it was active
+      if (screenSharingActive) {
+        stopScreenSharing();
+      }
 
     } catch (err) {
       setError('Failed to submit quiz results. Please try again.');
@@ -246,11 +274,22 @@ const QuizDetail = () => {
             <br />
             • Your results will be saved
           </p>
+          {/* --- NEW/MODIFIED UI TEXT --- */}
+          {isMobile ? (
+            <p className="text-orange-700 text-sm mt-2 font-semibold">
+                Note: Screen sharing is disabled on mobile devices.
+            </p>
+          ) : (
+            <p className="text-red-700 text-sm mt-2 font-semibold">
+                Warning: Screen sharing and fullscreen mode are required for this quiz. Any attempts to switch tabs or minimize will be recorded.
+            </p>
+          )}
+          {/* ------------------------------ */}
         </div>
         <button onClick={startQuiz} className="w-full btn-primary mt-6">
-          Share Screen and Start Quiz
+          {isMobile ? 'Start Quiz' : 'Share Screen and Start Quiz'}
         </button>
-        {screenSharingError && <p className="text-red-600 mt-4">{screenSharingError}</p>}
+        {screenSharingError && !isMobile && <p className="text-red-600 mt-4">{screenSharingError}</p>}
       </div>
     );
   }
@@ -322,27 +361,26 @@ const QuizDetail = () => {
       </div>
     );
   }
-
-  if (!screenSharingActive) {
-    return (
-      <div className="max-w-lg mx-auto bg-white p-8 rounded shadow text-center">
-        {screenSharingError ? (
-          <div className="text-red-600">{screenSharingError}</div>
-        ) : (
-          <div>Please share your screen to start the quiz.</div>
-        )}
-      </div>
-    );
-  }
-
+  
+  // The conditional rendering for 'Please share your screen...' is removed 
+  // because on mobile, screenSharingActive is set to false, but the quiz should still proceed.
+  
   if (questions.length === 0) {
     return <LoadingSpinner message="Loading questions..." />;
   }
-
+  
   const q = questions[currentQuestion];
 
   return (
     <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-8">
+      {/* --- NEW/MODIFIED UI TEXT to indicate proctoring status --- */}
+      {!isMobile && (
+        <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4" role="alert">
+          <p className="font-bold">Proctoring Active</p>
+          <p className="text-sm">Your screen is being recorded. Do not switch tabs or minimize.</p>
+        </div>
+      )}
+      {/* ------------------------------------------------------------- */}
       <h2 className="text-xl font-semibold text-gray-800 mb-6">
         Question {currentQuestion + 1} of {questions.length}
       </h2>
