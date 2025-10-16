@@ -346,7 +346,7 @@ const QuizDetail = () => {
       <h2 className="text-xl font-semibold text-gray-800 mb-6">
         Question {currentQuestion + 1} of {questions.length}
       </h2>
-      <p className="text-lg inline-block font-medium mb-4">{q.questionText}</p>
+      <p style="white-space: pre-line" className="text-lg font-medium mb-4">{q.questionText}</p>
       <div className="space-y-3 mb-6">
         {q.options.map((opt, idx) => (
           <button
