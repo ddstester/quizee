@@ -136,7 +136,7 @@ router.post('/prompt', auth, async (req, res) => {
       for (let i = 0; i < questions.length; i++) {
         try {
           let obj = questions[i]
-          const questionText = obj.questionText, options = obj.options, correctAnswer = obj.correctAnswer;
+          const questionText = obj.questionText, options = obj.options, correctAnswer = obj.correctAnswer - 1;
           // console.log(obj.questionText)
 
           // Validate input
