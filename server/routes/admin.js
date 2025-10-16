@@ -88,7 +88,7 @@ router.post('/verify', auth, async (req, res) => {
 });
 
 // GET /api/admin/dashboard - Get dashboard data (Admin only)
-router.get('/dashboard', auth, async (req, res) => {
+router.get('/dashboard', async (req, res) => {
   try {
     const Quiz = require('../models/Quiz');
     const Question = require('../models/Question');
